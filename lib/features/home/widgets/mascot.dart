@@ -47,7 +47,9 @@ class _MascotState extends State<Mascot> with TickerProviderStateMixin {
   /// Tilt in [-1, 1] on each axis; springs back to centre when released.
   Offset _tilt = Offset.zero;
   double _blink = 0;
-  late final _blinker = AnimationController(
+  // Type is explicit because the listener reads _blinker back, which makes
+  // inference circular.
+  late final AnimationController _blinker = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 160),
   )..addListener(() => setState(() => _blink = _blinker.value));

@@ -51,6 +51,10 @@ jobs:
       - name: Generate launcher icons
         run: dart run flutter_launcher_icons
 
+      # Fails in ~40s on a type error instead of 4 minutes into Gradle.
+      # Style lints stay non-fatal; only real errors stop the build.
+      - run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
       - run: flutter test
 
       - run: flutter build apk --release
