@@ -1,0 +1,61 @@
+name: money_plant
+description: "Money Plant — offline-first expense, income & task tracker"
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Routing
+  go_router: ^14.6.2
+
+  # Local "database" + files
+  excel: ^4.0.6
+  path_provider: ^2.1.5
+  permission_handler: ^11.3.1
+
+  # Statements
+  pdf: ^3.11.1
+  printing: ^5.13.4
+
+  # Look & feel
+  flutter_animate: ^4.5.2
+  fl_chart: ^0.69.2
+  google_fonts: ^6.2.1
+
+  intl: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  build_runner: ^2.4.13
+  riverpod_generator: ^2.6.3
+  flutter_launcher_icons: ^0.14.1
+
+flutter:
+  uses-material-design: true
+
+# ---------------------------------------------------------------------------
+# Launcher icons. Covers every Android generation in one shot:
+#   legacy (<26)      -> square/round PNG baked from image_path
+#   adaptive (26+)    -> foreground PNG + solid background colour
+#   themed (13+)      -> monochrome PNG, tinted by Material You wallpaper colours
+# Regenerate with:  dart run flutter_launcher_icons
+# ---------------------------------------------------------------------------
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: false
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#0A0F0C"
+  adaptive_icon_foreground: "assets/icon/foreground.png"
+  adaptive_icon_monochrome: "assets/icon/monochrome.png"
+  min_sdk_android: 23
