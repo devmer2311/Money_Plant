@@ -1,14 +1,18 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:money_plant/core/entry.dart';
 
-/// One check for the only branchy logic in the app: how rows roll up into the
-/// numbers the home screen, the charts and the PDF all read from.
+/// Checks the only branchy logic in the app: how rows roll up into the numbers
+/// that the home screen, the charts and the PDF all read from, and the row-index
+/// identity that update and delete depend on.
 void main() {
-  Entry e(EntryType t, double amount) => Entry(
-        date: DateTime(2026, 9, 4),
+  final day = DateTime(2026, 9, 4);
+
+  Entry e(EntryType t, double amount, {int row = -1}) => Entry(
+        date: day,
         type: t,
         amount: amount,
         category: 'Food',
+        row: row,
       );
 
   test('summary splits income, spend and tasks', () {
@@ -37,6 +41,23 @@ void main() {
           .burnRate,
       0.5,
     );
+  });
+
+  test('copyWith keeps the row key, so an edit targets the same sheet line', () {
+    final original = e(EntryType.outgoing, 100, row: 7);
+    final edited = original.copyWith(amount: 250, category: 'Travel');
+
+    expect(edited.row, 7);
+    expect(edited.isPersisted, isTrue);
+    expect(edited.amount, 250);
+    expect(edited.category, 'Travel');
+    expect(edited.date, original.date);
+    expect(edited.type, original.type);
+  });
+
+  test('an entry with no row yet is not persisted, so edits refuse it', () {
+    expect(e(EntryType.incoming, 10).isPersisted, isFalse);
+    expect(e(EntryType.incoming, 10, row: 0).isPersisted, isTrue);
   });
 
   test('type parsing survives whatever case the sheet was edited into', () {

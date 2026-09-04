@@ -49,7 +49,10 @@ class ExcelService {
     if (sheet == null) return const [];
 
     final out = <Entry>[];
-    for (final row in sheet.rows.skip(1)) {
+    // Indexed loop, not `skip(1)`: the position in the sheet is the row's
+    // identity, and update/delete need it.
+    for (var i = 1; i < sheet.rows.length; i++) {
+      final row = sheet.rows[i];
       final date = DateTime.tryParse(_str(row, 0).replaceFirst(' ', 'T'));
       if (date == null) continue; // blank row or a header we didn't write
       out.add(
@@ -59,6 +62,7 @@ class ExcelService {
           amount: double.tryParse(_str(row, 2)) ?? 0,
           category: _str(row, 3),
           description: _str(row, 4),
+          row: i,
         ),
       );
     }
@@ -87,31 +91,12 @@ class ExcelService {
 
   // --------------------------------------------------------------- write ---
 
-  /// Append-only: decode what's on disk (or start a fresh book), push one row,
-  /// re-encode. Fine at personal-finance volumes.
+  /// Decode what's on disk (or start a fresh book), push one row, re-encode.
   ///
-  /// ponytail: rewrites the whole file per entry — switch to a append-friendly
-  /// store only if a month ever grows past a few thousand rows.
+  /// ponytail: every mutation rewrites the whole workbook — switch to an
+  /// append-friendly store only if a month grows past a few thousand rows.
   Future<void> add(Entry e) async {
-    final file = await fileFor(e.date);
-    final Excel book;
-
-    if (await file.exists()) {
-      book = Excel.decodeBytes(await file.readAsBytes());
-    } else {
-      book = Excel.createExcel();
-      book[_sheet].appendRow(_headers.map(TextCellValue.new).toList());
-      // createExcel() ships a default "Sheet1" we never use.
-      try {
-        book.setDefaultSheet(_sheet);
-        for (final name in book.sheets.keys.toList()) {
-          if (name != _sheet) book.delete(name);
-        }
-      } catch (_) {
-        // A stray empty sheet is cosmetic — never fail a write over it.
-      }
-    }
-
+    final book = await _open(e.date);
     book[_sheet].appendRow(<CellValue?>[
       TextCellValue(_stamp.format(e.date)),
       TextCellValue(e.type.label),
@@ -120,6 +105,65 @@ class ExcelService {
       TextCellValue(e.description),
     ]);
 
+    await _flush(e.date, book);
+  }
+
+  /// Overwrite one row in place. Row indices come from [read] and stay valid
+  /// until the next mutation, which is why every caller re-reads afterwards.
+  Future<void> update(DateTime month, int row, Entry e) async {
+    final book = await _open(month);
+    final sheet = book[_sheet];
+    if (row < 1 || row >= sheet.rows.length) {
+      throw Exception('That row is no longer in the sheet — reopen the month');
+    }
+    final cells = <CellValue?>[
+      TextCellValue(_stamp.format(e.date)),
+      TextCellValue(e.type.label),
+      DoubleCellValue(e.amount),
+      TextCellValue(e.category),
+      TextCellValue(e.description),
+    ];
+    for (var c = 0; c < cells.length; c++) {
+      sheet.updateCell(
+        CellIndex.indexByColumnRow(columnIndex: c, rowIndex: row),
+        cells[c],
+      );
+    }
+    await _flush(month, book);
+  }
+
+  /// Drop a row. Everything below it shifts up by one — harmless, because the
+  /// UI reloads from disk straight after.
+  Future<void> remove(DateTime month, int row) async {
+    final book = await _open(month);
+    final sheet = book[_sheet];
+    if (row < 1 || row >= sheet.rows.length) return; // already gone
+    sheet.removeRow(row);
+    await _flush(month, book);
+  }
+
+  /// Decode the month's workbook, or mint a fresh one with just the header.
+  Future<Excel> _open(DateTime month) async {
+    final file = await fileFor(month);
+    if (await file.exists()) {
+      return Excel.decodeBytes(await file.readAsBytes());
+    }
+    final book = Excel.createExcel();
+    book[_sheet].appendRow(_headers.map(TextCellValue.new).toList());
+    // createExcel() ships a default "Sheet1" we never use.
+    try {
+      book.setDefaultSheet(_sheet);
+      for (final name in book.sheets.keys.toList()) {
+        if (name != _sheet) book.delete(name);
+      }
+    } catch (_) {
+      // A stray empty sheet is cosmetic — never fail a write over it.
+    }
+    return book;
+  }
+
+  Future<void> _flush(DateTime month, Excel book) async {
+    final file = await fileFor(month);
     final bytes = book.save();
     if (bytes == null) throw Exception('Could not encode ${file.path}');
     await file.writeAsBytes(bytes, flush: true);

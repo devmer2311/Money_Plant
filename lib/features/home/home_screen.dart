@@ -177,7 +177,10 @@ class HomeScreen extends ConsumerWidget {
             itemCount: entries.length.clamp(0, 8),
             itemBuilder: (context, i) => Padding(
               padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
-              child: EntryTile(entry: entries[i])
+              child: EntryTile(
+                entry: entries[i],
+                onTap: () => showEntryEditor(context, entries[i]),
+              )
                   // Staggered list entrance — each row 40ms behind the last.
                   .animate(delay: (40 * i).ms)
                   .fadeIn(duration: 320.ms)
@@ -315,8 +318,10 @@ class _StatTile extends StatelessWidget {
 
 /// Shared by Home and the ledger screen.
 class EntryTile extends StatelessWidget {
-  const EntryTile({super.key, required this.entry});
+  const EntryTile({super.key, required this.entry, this.onTap});
+
   final Entry entry;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -330,6 +335,7 @@ class EntryTile extends StatelessWidget {
     return Glass(
       radius: 20,
       tint: color,
+      onTap: onTap,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
         children: [

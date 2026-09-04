@@ -10,20 +10,30 @@ import '../../../data/providers.dart';
 /// The reason the app exists: a card that is already open, already focused, and
 /// one tap from saving. No FAB, no sheet to summon, no navigation.
 class QuickAddCard extends ConsumerStatefulWidget {
-  const QuickAddCard({super.key});
+  const QuickAddCard({super.key, this.editing});
+
+  /// When set, the form edits this row instead of appending a new one.
+  final Entry? editing;
 
   @override
   ConsumerState<QuickAddCard> createState() => _QuickAddCardState();
 }
 
 class _QuickAddCardState extends ConsumerState<QuickAddCard> {
-  final _amount = TextEditingController();
-  final _note = TextEditingController();
+  late final _amount = TextEditingController(
+    text: widget.editing == null || widget.editing!.amount == 0
+        ? ''
+        : widget.editing!.amount.toStringAsFixed(2),
+  );
+  late final _note =
+      TextEditingController(text: widget.editing?.description ?? '');
   final _amountFocus = FocusNode();
 
-  EntryType _type = EntryType.outgoing;
-  String _category = kCategories.first;
+  late EntryType _type = widget.editing?.type ?? EntryType.outgoing;
+  late String _category = widget.editing?.category ?? kCategories.first;
   bool _saving = false;
+
+  bool get _isEdit => widget.editing != null;
 
   @override
   void dispose() {
@@ -59,15 +69,30 @@ class _QuickAddCardState extends ConsumerState<QuickAddCard> {
     HapticFeedback.mediumImpact();
 
     try {
-      await ref.read(ledgerProvider.notifier).add(
-            Entry(
-              date: DateTime.now(),
-              type: _type,
-              amount: isTask ? 0 : amount,
-              category: _category,
-              description: _note.text.trim(),
-            ),
-          );
+      final ledger = ref.read(ledgerProvider.notifier);
+      if (_isEdit) {
+        await ledger.edit(
+          widget.editing!.copyWith(
+            type: _type,
+            amount: isTask ? 0 : amount,
+            category: _category,
+            description: _note.text.trim(),
+          ),
+        );
+        if (!mounted) return;
+        Navigator.of(context).maybePop();
+        return;
+      }
+
+      await ledger.add(
+        Entry(
+          date: DateTime.now(),
+          type: _type,
+          amount: isTask ? 0 : amount,
+          category: _category,
+          description: _note.text.trim(),
+        ),
+      );
       if (!mounted) return;
       _amount.clear();
       _note.clear();
@@ -113,6 +138,7 @@ class _QuickAddCardState extends ConsumerState<QuickAddCard> {
                     controller: _amount,
                     focusNode: _amountFocus,
                     accent: _accent,
+                    autofocus: !_isEdit,
                   ),
           ),
 
@@ -143,7 +169,9 @@ class _QuickAddCardState extends ConsumerState<QuickAddCard> {
           _SaveButton(
             accent: _accent,
             busy: _saving,
-            label: isTask ? 'Log task' : 'Add ${_type.label.toLowerCase()}',
+            label: _isEdit
+                ? 'Save changes'
+                : (isTask ? 'Log task' : 'Add ${_type.label.toLowerCase()}'),
             onTap: _save,
           ),
         ],
@@ -241,11 +269,13 @@ class _AmountField extends StatelessWidget {
     required this.controller,
     required this.focusNode,
     required this.accent,
+    this.autofocus = true,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
   final Color accent;
+  final bool autofocus;
 
   @override
   Widget build(BuildContext context) {
@@ -265,7 +295,7 @@ class _AmountField extends StatelessWidget {
           child: TextField(
             controller: controller,
             focusNode: focusNode,
-            autofocus: true,
+            autofocus: autofocus,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
@@ -424,4 +454,41 @@ class _SaveButtonState extends State<_SaveButton> {
       ),
     );
   }
+}
+
+/// Opens the shared form as a bottom sheet, pre-filled with [entry].
+/// Same widget as the add card — an editor is just the form plus a row id.
+Future<void> showEntryEditor(BuildContext context, Entry entry) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) => Padding(
+      // Lift the sheet above the keyboard rather than letting it overlap.
+      padding: EdgeInsets.only(
+        left: 14,
+        right: 14,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 14,
+        top: 10,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 42,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.25),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          QuickAddCard(editing: entry),
+        ],
+      ),
+    ),
+  );
 }

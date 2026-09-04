@@ -15,6 +15,7 @@ mascot that gets visibly unhappy as your burn rate climbs.
 | Concern | Choice |
 | --- | --- |
 | Database | `Expenses_Sep_2026.xlsx` per month, `path_provider` app documents dir |
+| CRUD | full — add from the home card, tap a row to edit, swipe to delete (with undo) |
 | State | Riverpod 2 + `riverpod_generator` |
 | Routing | `go_router`, shell route, fade + rise transitions |
 | Charts | `fl_chart` — self-drawing curved area line, interactive doughnut |
@@ -34,6 +35,11 @@ Every workbook has one sheet, `Entries`:
 
 `Type` is `Incoming`, `Outgoing` or `Task`. Task rows carry a zero amount and
 are excluded from every total — the same sheet doubles as a to-do log.
+
+A row's **position in the sheet is its primary key** — no extra Id column. That
+works because every mutation re-reads the workbook afterwards, so a delete
+shifting the rows below it can never leave a stale index in memory. Edit a row
+by hand in Excel and the app picks it up on next read.
 
 ---
 
@@ -110,4 +116,5 @@ Re-run `build_runner` whenever `lib/data/providers.dart` changes.
   wrong past a few thousand rows a month.
 * Fonts come from `google_fonts` at runtime; the first launch on a device with
   no network falls back to the system font until it can cache them.
-* Entries are append-only — no edit or delete yet.
+* Editing cannot move an entry to a different month from the UI (there is no
+  date picker); the service handles it by delete-then-add if you ever add one.

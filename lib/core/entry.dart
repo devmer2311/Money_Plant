@@ -27,6 +27,7 @@ class Entry {
     required this.amount,
     required this.category,
     this.description = '',
+    this.row = -1,
   });
 
   final DateTime date;
@@ -35,12 +36,36 @@ class Entry {
   final String category;
   final String description;
 
+  /// Which line of the sheet this came from — the row *is* the primary key.
+  /// Cheaper than an extra Id column, and safe because every edit and delete
+  /// re-reads the workbook afterwards, so indices never go stale in memory.
+  /// `-1` means "not written yet".
+  final int row;
+
+  bool get isPersisted => row >= 0;
+
   /// Positive for money in, negative for money out, zero for tasks.
   double get signed => switch (type) {
         EntryType.incoming => amount,
         EntryType.outgoing => -amount,
         EntryType.task => 0,
       };
+
+  Entry copyWith({
+    DateTime? date,
+    EntryType? type,
+    double? amount,
+    String? category,
+    String? description,
+  }) =>
+      Entry(
+        date: date ?? this.date,
+        type: type ?? this.type,
+        amount: amount ?? this.amount,
+        category: category ?? this.category,
+        description: description ?? this.description,
+        row: row,
+      );
 }
 
 /// Rolled-up numbers for a set of entries. Tasks contribute nothing.

@@ -8,6 +8,7 @@ import '../../app/theme.dart';
 import '../../core/entry.dart';
 import '../../data/providers.dart';
 import '../home/home_screen.dart' show EntryTile;
+import '../home/widgets/quick_add_card.dart' show showEntryEditor;
 
 /// Browse any month that has a workbook on disk, and get the two exports out
 /// of the device: the raw `.xlsx` and the rendered PDF statement.
@@ -183,7 +184,13 @@ class HistoryScreen extends ConsumerWidget {
                   itemCount: rows.length,
                   itemBuilder: (context, i) => Padding(
                     padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
-                    child: EntryTile(entry: rows[i])
+                    child: _SwipeToDelete(
+                      entry: rows[i],
+                      child: EntryTile(
+                        entry: rows[i],
+                        onTap: () => showEntryEditor(context, rows[i]),
+                      ),
+                    )
                         .animate(delay: (30 * i).clamp(0, 400).ms)
                         .fadeIn(duration: 300.ms)
                         .slideX(begin: 0.06, curve: Curves.easeOutCubic),
@@ -195,6 +202,55 @@ class HistoryScreen extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// Swipe either way to delete the row, with an undo that re-adds it. The
+/// background reveals progressively so the gesture explains itself before it
+/// commits.
+class _SwipeToDelete extends ConsumerWidget {
+  const _SwipeToDelete({required this.entry, required this.child});
+
+  final Entry entry;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Dismissible(
+      // The sheet row index is unique within a month, and the list reloads
+      // after every delete, so it is a safe key.
+      key: ValueKey('row-${entry.row}-${entry.date.millisecondsSinceEpoch}'),
+      background: _background(Alignment.centerLeft),
+      secondaryBackground: _background(Alignment.centerRight),
+      onDismissed: (_) async {
+        HapticFeedback.mediumImpact();
+        final ledger = ref.read(ledgerProvider.notifier);
+        final messenger = ScaffoldMessenger.of(context);
+        await ledger.remove(entry);
+        messenger.showSnackBar(
+          SnackBar(
+            content: const Text('Entry deleted'),
+            action: SnackBarAction(
+              label: 'UNDO',
+              textColor: MP.neon,
+              onPressed: () => ledger.restore(entry),
+            ),
+          ),
+        );
+      },
+      child: child,
+    );
+  }
+
+  Widget _background(Alignment align) => Container(
+        alignment: align,
+        padding: const EdgeInsets.symmetric(horizontal: 26),
+        decoration: BoxDecoration(
+          color: MP.flame.withValues(alpha: 0.18),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Icon(Icons.delete_outline_rounded,
+            color: MP.flame, size: 22),
+      );
 }
 
 class _MonthChip extends StatelessWidget {
