@@ -1,21 +1,22 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/entry.dart';
 import 'excel_service.dart';
 import 'pdf_statement_service.dart';
 
-part 'providers.g.dart';
+/// Hand-written on purpose. `riverpod_generator` would produce almost exactly
+/// this file, at the cost of a `build_runner` step that has to re-analyse the
+/// whole package on every CI run — minutes of build time, and a step that can
+/// hang, to save about thirty lines. Not a trade worth making at this size.
 
-@Riverpod(keepAlive: true)
-ExcelService excelService(Ref ref) => ExcelService();
+final excelServiceProvider = Provider<ExcelService>((ref) => ExcelService());
 
-@Riverpod(keepAlive: true)
-PdfStatementService pdfStatementService(Ref ref) =>
-    PdfStatementService(ref.watch(excelServiceProvider));
+final pdfStatementServiceProvider = Provider<PdfStatementService>(
+  (ref) => PdfStatementService(ref.watch(excelServiceProvider)),
+);
 
 /// Which month the whole app is looking at. Home always starts on today's.
-@Riverpod(keepAlive: true)
-class SelectedMonth extends _$SelectedMonth {
+class SelectedMonth extends Notifier<DateTime> {
   @override
   DateTime build() {
     final now = DateTime.now();
@@ -25,20 +26,22 @@ class SelectedMonth extends _$SelectedMonth {
   void select(DateTime month) => state = DateTime(month.year, month.month);
 }
 
-/// Months that have a workbook on disk (plus the current one, always).
-@riverpod
-Future<List<DateTime>> availableMonths(Ref ref) =>
-    ref.watch(excelServiceProvider).months();
+final selectedMonthProvider =
+    NotifierProvider<SelectedMonth, DateTime>(SelectedMonth.new);
 
-/// The entries of [SelectedMonth], newest first, and the full CRUD surface
-/// over them.
+/// Months that have a workbook on disk (plus the current one, always).
+final availableMonthsProvider = FutureProvider<List<DateTime>>(
+  (ref) => ref.watch(excelServiceProvider).months(),
+);
+
+/// The entries of [selectedMonthProvider], newest first, and the full CRUD
+/// surface over them.
 ///
 /// Every mutation writes to the workbook and then re-reads it. That is not
 /// laziness about performance — an entry's identity *is* its row index, and a
 /// delete shifts every row below it, so in-memory patching would hand the UI
 /// stale keys. The re-read is one file decode; correctness is worth it.
-@riverpod
-class Ledger extends _$Ledger {
+class Ledger extends AsyncNotifier<List<Entry>> {
   @override
   Future<List<Entry>> build() =>
       ref.watch(excelServiceProvider).read(ref.watch(selectedMonthProvider));
@@ -93,7 +96,10 @@ class Ledger extends _$Ledger {
   }
 }
 
+final ledgerProvider =
+    AsyncNotifierProvider<Ledger, List<Entry>>(Ledger.new);
+
 /// Totals for the selected month. Cheap enough to recompute on every rebuild.
-@riverpod
-Summary monthSummary(Ref ref) =>
-    Summary.of(ref.watch(ledgerProvider).valueOrNull ?? const []);
+final monthSummaryProvider = Provider<Summary>(
+  (ref) => Summary.of(ref.watch(ledgerProvider).valueOrNull ?? const []),
+);

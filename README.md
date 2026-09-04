@@ -16,7 +16,7 @@ mascot that gets visibly unhappy as your burn rate climbs.
 | --- | --- |
 | Database | `Expenses_Sep_2026.xlsx` per month, `path_provider` app documents dir |
 | CRUD | full — add from the home card, tap a row to edit, swipe to delete (with undo) |
-| State | Riverpod 2 + `riverpod_generator` |
+| State | Riverpod 2, providers written by hand — no `build_runner` step |
 | Routing | `go_router`, shell route, fade + rise transitions |
 | Charts | `fl_chart` — self-drawing curved area line, interactive doughnut |
 | Statement | `pdf` + `printing` → a real bank-statement layout |
@@ -57,7 +57,7 @@ lib/
 ├─ data/
 │  ├─ excel_service.dart           create / read / append / export .xlsx
 │  ├─ pdf_statement_service.dart   the premium PDF statement
-│  └─ providers.dart               Riverpod graph (codegen)
+│  └─ providers.dart               Riverpod graph
 └─ features/
    ├─ home/
    │  ├─ home_screen.dart          instant-add + mascot + totals + recent
@@ -78,7 +78,7 @@ is Gradle boilerplate that drifts with every Flutter release.
 Push to `main`. That's it.
 
 `.github/workflows/android-build.yml` fetches Flutter, scaffolds `android/`,
-generates the launcher icons and the Riverpod providers, runs the tests, builds
+generates the launcher icons, runs the tests, builds
 `flutter build apk --release`, and uploads it as the **`money-plant-apk`**
 artifact on the run page. Download, install, done — nothing to build locally.
 
@@ -89,11 +89,8 @@ flutter create --platforms=android --org com.moneyplant --project-name money_pla
 git checkout -- .                    # keep our files, keep the generated android/
 flutter pub get
 dart run flutter_launcher_icons
-dart run build_runner build --delete-conflicting-outputs
 flutter run
 ```
-
-Re-run `build_runner` whenever `lib/data/providers.dart` changes.
 
 ---
 

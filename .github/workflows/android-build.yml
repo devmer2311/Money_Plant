@@ -11,6 +11,7 @@ jobs:
   apk:
     name: Build release APK
     runs-on: ubuntu-latest
+    timeout-minutes: 25
 
     steps:
       - uses: actions/checkout@v4
@@ -49,10 +50,6 @@ jobs:
       # Legacy + adaptive + Android 13 themed icons, all from assets/icon/.
       - name: Generate launcher icons
         run: dart run flutter_launcher_icons
-
-      # Riverpod providers.
-      - name: Generate providers
-        run: dart run build_runner build --delete-conflicting-outputs
 
       - run: flutter test
 
