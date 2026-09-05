@@ -26,6 +26,28 @@ jobs:
           channel: stable
           cache: true
 
+      # Android refuses to install an APK over one signed by a different key —
+      # the only way through is to uninstall, which deletes the workbooks in
+      # the app's private folder. A generated android/ has no release signing
+      # config, so Gradle signs release builds with ~/.android/debug.keystore,
+      # and the runner makes a brand new one every run. Dropping our own
+      # keystore in that exact path pins the signature without patching Gradle,
+      # and every later build installs as an update with the data intact.
+      #
+      # One-time setup (see README): create the keystore, then
+      #   gh secret set ANDROID_KEYSTORE_B64 < keystore.b64
+      - name: Pin the signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::warning::ANDROID_KEYSTORE_B64 is not set — this APK gets a throwaway signature and will not install over an earlier build. Android will ask for an uninstall, and the ledger goes with it. See README > Installing updates."
+          else
+            mkdir -p ~/.android
+            echo "$KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
+            echo "Signing with the project keystore."
+          fi
+
       # The android/ folder is generated rather than committed — it is pure
       # Gradle boilerplate that drifts with every Flutter release. `git checkout`
       # puts our own tracked files (lib/, pubspec.yaml, …) back afterwards; the
@@ -57,13 +79,18 @@ jobs:
 
       - run: flutter test
 
-      - run: flutter build apk --release
+      # The run number is the versionCode: it only ever goes up, so a newer
+      # APK is never rejected as a downgrade. The versionName stays whatever
+      # pubspec says.
+      - run: flutter build apk --release --build-number="${GITHUB_RUN_NUMBER}"
 
       - name: Rename APK
         run: |
           mkdir -p dist
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//;s/+.*//')
           cp build/app/outputs/flutter-apk/app-release.apk \
-             "dist/MoneyPlant-${GITHUB_RUN_NUMBER}.apk"
+             "dist/MoneyPlant-${VERSION}-${GITHUB_RUN_NUMBER}.apk"
+          echo "Built MoneyPlant ${VERSION} (versionCode ${GITHUB_RUN_NUMBER})"
 
       - uses: actions/upload-artifact@v4
         with:

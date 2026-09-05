@@ -82,6 +82,44 @@ generates the launcher icons, runs the tests, builds
 `flutter build apk --release`, and uploads it as the **`money-plant-apk`**
 artifact on the run page. Download, install, done — nothing to build locally.
 
+Every run stamps the APK with the workflow run number as its `versionCode`,
+so a newer build is never refused as a downgrade.
+
+## Installing updates without losing the ledger
+
+The ledgers live in the app's private folder. An **update** keeps them; an
+**uninstall** deletes them. Android only accepts an update when the new APK
+carries the same signature as the installed one — otherwise it demands an
+uninstall first, and the workbooks go with it.
+
+A generated `android/` has no release signing config, so Gradle signs release
+builds with `~/.android/debug.keystore`, and a CI runner mints a fresh one
+every run. Every APK therefore had a different signature. The fix is one
+secret: a keystore of our own, dropped into that exact path before the build.
+
+Create it once (any machine with a JDK — Android Studio ships one at
+`<studio>/jbr/bin/keytool`). The alias and passwords are not a choice; they
+are what Gradle's debug config looks for:
+
+```bash
+keytool -genkeypair -v -keystore money-plant.keystore         -storepass android -keypass android -alias androiddebugkey         -keyalg RSA -keysize 2048 -validity 10000         -dname "CN=Money Plant, O=Money Plant, C=IN"
+
+base64 -w0 money-plant.keystore > keystore.b64      # macOS: base64 -i …
+gh secret set ANDROID_KEYSTORE_B64 < keystore.b64   # or paste it in Settings
+```
+
+Keep `money-plant.keystore` somewhere safe and out of the repo — losing it
+means the next APK cannot update the installed one either.
+
+The build warns instead of failing when the secret is missing, so CI keeps
+working; the APK simply will not install over an older one.
+
+**The changeover costs one uninstall.** The build already on the phone was
+signed with a runner's throwaway key, so the first APK signed with the real
+keystore still has to replace it. Export the months you care about first
+(Ledger → the `.xlsx` export writes to `Download/`), uninstall, install the
+new APK, and every build after that lands as an update.
+
 ## Running it locally (optional)
 
 ```bash
