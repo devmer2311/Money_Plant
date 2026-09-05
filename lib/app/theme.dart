@@ -2,21 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Palette. Deep OLED black + neon for dark, paper white + soft glass for light.
+/// Palette. Charcoal + soft violet glass for dark, light grey for light;
+/// neon green stays an accent in both, never a background.
 abstract class MP {
   static const neon = Color(0xFF00E676); // money in / primary accent
   static const mint = Color(0xFF5BFFB0);
   static const flame = Color(0xFFFF4D6D); // money out
   static const violet = Color(0xFF7C4DFF);
   static const cyan = Color(0xFF00E5FF);
+  static const amber = Color(0xFFFFB300);
 
-  static const void_ = Color(0xFF000000); // true black — OLED pixels off
-  static const ink = Color(0xFF0B0F0C);
-  static const slate = Color(0xFF161B18);
+  // Charcoal, not OLED black: a pure-black ground kills the glass and makes
+  // every ambient gradient band. Same reason light mode is grey, not white.
+  static const void_ = Color(0xFF0C0E14);
+  static const ink = Color(0xFF141824);
+  static const slate = Color(0xFF1B2030);
 
-  static const paper = Color(0xFFF4F6F3);
+  static const paper = Color(0xFFEFF0F5);
   static const chalk = Color(0xFFFFFFFF);
-  static const graphite = Color(0xFF10130F);
+  static const graphite = Color(0xFF151824);
 
   /// Category colours, indexed by [kCategories] position.
   static const wheel = <Color>[
@@ -35,6 +39,20 @@ abstract class MP {
     final i = c.hashCode.abs() % wheel.length;
     return wheel[i];
   }
+
+  static const _icons = <String, IconData>{
+    'Food': Icons.restaurant_rounded,
+    'Travel': Icons.directions_car_rounded,
+    'Rent': Icons.home_rounded,
+    'Shopping': Icons.shopping_bag_rounded,
+    'Bills': Icons.receipt_rounded,
+    'Health': Icons.favorite_rounded,
+    'Fun': Icons.music_note_rounded,
+    'Salary': Icons.payments_rounded,
+  };
+
+  static IconData iconFor(String category) =>
+      _icons[category] ?? Icons.category_rounded;
 }
 
 ThemeData buildTheme({required bool dark}) {

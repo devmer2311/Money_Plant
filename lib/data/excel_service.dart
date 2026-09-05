@@ -188,7 +188,8 @@ class ExcelService {
     }
     final now = DateTime.now();
     final thisMonth = DateTime(now.year, now.month);
-    if (!out.any((m) => m.year == thisMonth.year && m.month == thisMonth.month)) {
+    if (!out
+        .any((m) => m.year == thisMonth.year && m.month == thisMonth.month)) {
       out.add(thisMonth);
     }
     out.sort((a, b) => b.compareTo(a));
@@ -202,7 +203,9 @@ class ExcelService {
   /// still reachable via the share sheet) when storage access is refused.
   Future<String> exportToDownloads(DateTime month) async {
     final src = await fileFor(month);
-    if (!await src.exists()) throw Exception('Nothing recorded for this month yet');
+    if (!await src.exists()) {
+      throw Exception('Nothing recorded for this month yet');
+    }
 
     if (await _storageGranted()) {
       final dl = Directory('/storage/emulated/0/Download');

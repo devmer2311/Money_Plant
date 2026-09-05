@@ -108,6 +108,23 @@ class _QuickAddCardState extends ConsumerState<QuickAddCard> {
     }
   }
 
+  Future<void> _delete() async {
+    final entry = widget.editing;
+    if (entry == null) return;
+    setState(() => _saving = true);
+    HapticFeedback.mediumImpact();
+    final ledger = ref.read(ledgerProvider.notifier);
+    try {
+      await ledger.remove(entry);
+      if (mounted) Navigator.of(context).maybePop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Could not delete: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isTask = _type == EntryType.task;
@@ -174,6 +191,20 @@ class _QuickAddCardState extends ConsumerState<QuickAddCard> {
                 : (isTask ? 'Log task' : 'Add ${_type.label.toLowerCase()}'),
             onTap: _save,
           ),
+          // Delete lives here as well as on the ledger swipe, so the plant's
+          // reaction to it happens on the screen the plant is actually on.
+          if (_isEdit) ...[
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: _saving ? null : _delete,
+              icon: const Icon(Icons.delete_outline_rounded, size: 18),
+              label: const Text('Delete transaction'),
+              style: TextButton.styleFrom(
+                foregroundColor: MP.flame,
+                minimumSize: const Size.fromHeight(44),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -241,15 +272,20 @@ class _TypeSwitch extends StatelessWidget {
                               : onSurface.withValues(alpha: 0.45),
                         ),
                         const SizedBox(width: 6),
-                        Text(
-                          t.label,
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight:
-                                t == value ? FontWeight.w700 : FontWeight.w500,
-                            color: t == value
-                                ? accent
-                                : onSurface.withValues(alpha: 0.5),
+                        Flexible(
+                          child: Text(
+                            t.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: t == value
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              color: t == value
+                                  ? accent
+                                  : onSurface.withValues(alpha: 0.5),
+                            ),
                           ),
                         ),
                       ],

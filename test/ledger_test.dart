@@ -16,7 +16,7 @@ void main() {
       );
 
   test('summary splits income, spend and tasks', () {
-    final s = Summary.of([
+    final s = Summary.of(<Entry>[
       e(EntryType.incoming, 5000),
       e(EntryType.outgoing, 1200),
       e(EntryType.outgoing, 300),
@@ -34,8 +34,9 @@ void main() {
   });
 
   test('burn rate flags overspending even with no income', () {
-    expect(Summary.of(<Entry>[]).burnRate, 0);
-    expect(Summary.of([e(EntryType.outgoing, 10)]).burnRate, greaterThan(1));
+    expect(Summary.of(const <Entry>[]).burnRate, 0);
+    expect(Summary.of(<Entry>[e(EntryType.outgoing, 10)]).burnRate,
+        greaterThan(1));
     expect(
       Summary.of([e(EntryType.incoming, 100), e(EntryType.outgoing, 50)])
           .burnRate,
@@ -43,7 +44,8 @@ void main() {
     );
   });
 
-  test('copyWith keeps the row key, so an edit targets the same sheet line', () {
+  test('copyWith keeps the row key, so an edit targets the same sheet line',
+      () {
     final original = e(EntryType.outgoing, 100, row: 7);
     final edited = original.copyWith(amount: 250, category: 'Travel');
 

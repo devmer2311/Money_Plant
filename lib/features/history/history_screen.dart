@@ -248,8 +248,8 @@ class _SwipeToDelete extends ConsumerWidget {
           color: MP.flame.withValues(alpha: 0.18),
           borderRadius: BorderRadius.circular(20),
         ),
-        child: const Icon(Icons.delete_outline_rounded,
-            color: MP.flame, size: 22),
+        child:
+            const Icon(Icons.delete_outline_rounded, color: MP.flame, size: 22),
       );
 }
 

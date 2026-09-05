@@ -17,9 +17,11 @@ class AppShell extends StatelessWidget {
     ('/', Icons.bolt_rounded, 'Add'),
     ('/analytics', Icons.insights_rounded, 'Insights'),
     ('/history', Icons.receipt_long_rounded, 'Ledger'),
+    ('/goals', Icons.favorite_rounded, 'Goals'),
   ];
 
-  int get _index => _tabs.indexWhere((t) => t.$1 == location).clamp(0, 2);
+  int get _index =>
+      _tabs.indexWhere((t) => t.$1 == location).clamp(0, _tabs.length - 1);
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +57,8 @@ class AppShell extends StatelessWidget {
               AnimatedAlign(
                 duration: const Duration(milliseconds: 420),
                 curve: Curves.easeOutBack,
-                alignment: Alignment(-1 + _index * 1.0, 0),
+                // -1..1 spread across however many tabs there are.
+                alignment: Alignment(-1 + _index * 2 / (_tabs.length - 1), 0),
                 child: FractionallySizedBox(
                   widthFactor: 1 / _tabs.length,
                   child: Padding(
@@ -65,7 +68,8 @@ class AppShell extends StatelessWidget {
                         borderRadius: BorderRadius.circular(26),
                         gradient: LinearGradient(
                           colors: [
-                            scheme.primary.withValues(alpha: dark ? 0.22 : 0.16),
+                            scheme.primary
+                                .withValues(alpha: dark ? 0.22 : 0.16),
                             scheme.primary.withValues(alpha: 0.04),
                           ],
                         ),
@@ -114,9 +118,8 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final color = selected
-        ? scheme.primary
-        : scheme.onSurface.withValues(alpha: 0.45);
+    final color =
+        selected ? scheme.primary : scheme.onSurface.withValues(alpha: 0.45);
 
     return InkWell(
       onTap: onTap,

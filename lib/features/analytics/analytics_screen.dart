@@ -56,14 +56,11 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
             ),
           ),
         ).animate().fadeIn(duration: 380.ms).slideY(begin: -0.2),
-
         _FlowCard(entries: entries, month: month)
             .animate()
             .fadeIn(delay: 80.ms, duration: 450.ms)
             .slideY(begin: 0.1, curve: Curves.easeOutCubic),
-
         const SizedBox(height: 16),
-
         _CategoryCard(
           entries: entries,
           touched: _touchedSlice,
@@ -178,8 +175,7 @@ class _FlowCard extends StatelessWidget {
                               value.toInt().toString(),
                               style: TextStyle(
                                 fontSize: 10,
-                                color:
-                                    scheme.onSurface.withValues(alpha: 0.35),
+                                color: scheme.onSurface.withValues(alpha: 0.35),
                               ),
                             ),
                           ),
@@ -306,8 +302,10 @@ class _CategoryCard extends StatelessWidget {
             'No spending to break down yet.',
             style: TextStyle(
               fontSize: 13,
-              color:
-                  Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.4),
             ),
           ),
         ),
@@ -352,7 +350,8 @@ class _CategoryCard extends StatelessWidget {
                           title: '',
                           borderSide: i == active
                               ? BorderSide(
-                                  color: MP.forCategory(slices[i].key)
+                                  color: MP
+                                      .forCategory(slices[i].key)
                                       .withValues(alpha: 0.6),
                                   width: 3,
                                 )

@@ -41,6 +41,12 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  # Bundled so the PDF can print ₹ (U+20B9). The PDF core fonts are WinAnsi
+  # only, which silently drops the glyph, and downloading a font would break
+  # exporting a statement offline. Roboto, Apache-2.0.
+  assets:
+    - assets/fonts/
+
 # ---------------------------------------------------------------------------
 # Launcher icons. Covers every Android generation in one shot:
 #   legacy (<26)      -> square/round PNG baked from image_path
